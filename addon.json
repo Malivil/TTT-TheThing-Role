@@ -1,0 +1,17 @@
+{
+  "title": "The Thing (CR for TTT)",
+  "type": "ServerContent",
+  "ignore": [
+    ".git*",
+    ".vscode*",
+    "*.md",
+    "*.iml",
+    ".idea*",
+    "*.psd",
+    "*.vcproj",
+    "*.svn*",
+    "LICENSE",
+	"templates*",
+    "images*"
+  ]
+}
