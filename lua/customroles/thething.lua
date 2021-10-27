@@ -49,34 +49,6 @@ if SERVER then
 
     util.AddNetworkString("TTT_ThingContaminated")
 
-    local offsets = {}
-    for i = 0, 360, 15 do
-        table.insert(offsets, Vector(math.sin(i), math.cos(i), 0))
-    end
-
-    local function FindRespawnLocation(pos)
-        local midsize = Vector(33, 33, 74)
-        local tstart = pos + Vector(0, 0, midsize.z / 2)
-
-        for i = 1, #offsets do
-            local o = offsets[i]
-            local v = tstart + o * midsize * 1.5
-
-            local t = {
-                start = v,
-                endpos = v,
-                mins = midsize / -2,
-                maxs = midsize / 2
-            }
-
-            local tr = util.TraceHull(t)
-
-            if not tr.Hit then return v - Vector(0, 0, midsize.z / 2) end
-        end
-
-        return false
-    end
-
     hook.Add("PlayerDeath", "TheThing_DoPlayerDeath", function(victim, infl, attacker)
         local valid_kill = IsPlayer(attacker) and attacker ~= victim and GetRoundState() == ROUND_ACTIVE
         if not valid_kill then return end
