@@ -27,8 +27,8 @@ RegisterRole(ROLE)
 hook.Add("Initialize", "TheThing_Initialize", function()
     -- Use 229 if we're on Custom Roles for TTT earlier than version 1.2.5
     -- 229 is summation of the ASCII values for the characters "T", "H", and "I"
-    WIN_THETHING = GenerateNewWinID and GenerateNewWinID() or 229
-    EVENT_THINGCONTAMINATED = GenerateNewEventID()
+    WIN_THETHING = GenerateNewWinID and GenerateNewWinID(ROLE_THETHING) or 229
+    EVENT_THINGCONTAMINATED = GenerateNewEventID(ROLE_THETHING)
 
     if CLIENT then
         local contam_icon = Material("icon16/user_go.png")
