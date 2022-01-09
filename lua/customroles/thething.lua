@@ -118,11 +118,11 @@ if CLIENT then
             RegisterEvent()
         end)
     else
-        hook.Add("TTTSyncWinIDs", "TheThing_TTTWinIDsSynced", function()
+        hook.Add("TTTSyncWinIDs", "TheThing_TTTSyncWinIDs", function()
             WIN_THETHING = WINS_BY_ROLE[ROLE_THETHING]
         end)
 
-        hook.Add("TTTSyncEventIDs", "TheThing_TTTEventIDsSynced", function()
+        hook.Add("TTTSyncEventIDs", "TheThing_TTTSyncEventIDs", function()
             EVENT_THINGCONTAMINATED = EVENTS_BY_ROLE[ROLE_THETHING]
             RegisterEvent()
         end)
