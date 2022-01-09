@@ -24,30 +24,15 @@ ROLE.translations = {
 
 RegisterRole(ROLE)
 
-hook.Add("Initialize", "TheThing_Initialize", function()
-    -- Use 229 if we're on Custom Roles for TTT earlier than version 1.2.5
-    -- 229 is summation of the ASCII values for the characters "T", "H", and "I"
-    WIN_THETHING = GenerateNewWinID and GenerateNewWinID(ROLE_THETHING) or 229
-    EVENT_THINGCONTAMINATED = GenerateNewEventID(ROLE_THETHING)
-
-    if CLIENT then
-        local contam_icon = Material("icon16/user_go.png")
-        local Event = CLSCORE.DeclareEventDisplay
-        local PT = LANG.GetParamTranslation
-        Event(EVENT_THINGCONTAMINATED, {
-            text = function(e)
-                return PT("ev_thingcontam", {victim = e.vic, thething = ROLE_STRINGS[ROLE_THETHING]})
-            end,
-            icon = function(e)
-                return contam_icon, "Contaminated"
-            end})
-    end
-end)
-
 if SERVER then
     AddCSLuaFile()
 
     util.AddNetworkString("TTT_ThingContaminated")
+
+    hook.Add("Initialize", "TheThing_Initialize", function()
+        WIN_THETHING = GenerateNewWinID(ROLE_THETHING)
+        EVENT_THINGCONTAMINATED = GenerateNewEventID(ROLE_THETHING)
+    end)
 
     hook.Add("PlayerDeath", "TheThing_DoPlayerDeath", function(victim, infl, attacker)
         local valid_kill = IsPlayer(attacker) and attacker ~= victim and GetRoundState() == ROUND_ACTIVE
@@ -113,6 +98,36 @@ if SERVER then
 end
 
 if CLIENT then
+    local function RegisterEvent()
+        local contam_icon = Material("icon16/user_go.png")
+        local Event = CLSCORE.DeclareEventDisplay
+        local PT = LANG.GetParamTranslation
+        Event(EVENT_THINGCONTAMINATED, {
+            text = function(e)
+                return PT("ev_thingcontam", {victim = e.vic, thething = ROLE_STRINGS[ROLE_THETHING]})
+            end,
+            icon = function(e)
+                return contam_icon, "Contaminated"
+            end})
+    end
+
+    if not CRVersion("1.4.6") then
+        hook.Add("Initialize", "TheThing_Initialize", function()
+            WIN_THETHING = GenerateNewWinID(ROLE_THETHING)
+            EVENT_THINGCONTAMINATED = GenerateNewEventID(ROLE_THETHING)
+            RegisterEvent()
+        end)
+    else
+        hook.Add("TTTSyncWinIDs", "TheThing_TTTWinIDsSynced", function()
+            WIN_THETHING = WINS_BY_ROLE[ROLE_THETHING]
+        end)
+
+        hook.Add("TTTSyncEventIDs", "TheThing_TTTEventIDsSynced", function()
+            EVENT_THINGCONTAMINATED = EVENTS_BY_ROLE[ROLE_THETHING]
+            RegisterEvent()
+        end)
+    end
+
     net.Receive("TTT_ThingContaminated", function(len)
         local name = net.ReadString()
         CLSCORE:AddEvent({
