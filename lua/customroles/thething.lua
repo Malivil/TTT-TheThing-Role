@@ -98,7 +98,12 @@ if SERVER then
 end
 
 if CLIENT then
-    local function RegisterEvent()
+    hook.Add("TTTSyncWinIDs", "TheThing_TTTSyncWinIDs", function()
+        WIN_THETHING = WINS_BY_ROLE[ROLE_THETHING]
+    end)
+
+    hook.Add("TTTSyncEventIDs", "TheThing_TTTSyncEventIDs", function()
+        EVENT_THINGCONTAMINATED = EVENTS_BY_ROLE[ROLE_THETHING]
         local contam_icon = Material("icon16/user_go.png")
         local Event = CLSCORE.DeclareEventDisplay
         local PT = LANG.GetParamTranslation
@@ -109,24 +114,7 @@ if CLIENT then
             icon = function(e)
                 return contam_icon, "Contaminated"
             end})
-    end
-
-    if not CRVersion("1.4.6") then
-        hook.Add("Initialize", "TheThing_Initialize", function()
-            WIN_THETHING = GenerateNewWinID(ROLE_THETHING)
-            EVENT_THINGCONTAMINATED = GenerateNewEventID(ROLE_THETHING)
-            RegisterEvent()
-        end)
-    else
-        hook.Add("TTTSyncWinIDs", "TheThing_TTTSyncWinIDs", function()
-            WIN_THETHING = WINS_BY_ROLE[ROLE_THETHING]
-        end)
-
-        hook.Add("TTTSyncEventIDs", "TheThing_TTTSyncEventIDs", function()
-            EVENT_THINGCONTAMINATED = EVENTS_BY_ROLE[ROLE_THETHING]
-            RegisterEvent()
-        end)
-    end
+    end)
 
     net.Receive("TTT_ThingContaminated", function(len)
         local name = net.ReadString()
