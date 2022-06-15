@@ -22,12 +22,23 @@ ROLE.translations = {
     }
 }
 
+ROLE.convars = {}
+table.insert(ROLE.convars, {
+    cvar = "ttt_thething_is_monster",
+    type = ROLE_CONVAR_TYPE_BOOL
+})
+
 RegisterRole(ROLE)
 
 if SERVER then
     AddCSLuaFile()
 
     util.AddNetworkString("TTT_ThingContaminated")
+
+    local thething_is_monster = CreateConVar("ttt_thething_is_monster", "0")
+    hook.Add("TTTSyncGlobals", "TheThing_TTTSyncGlobals", function()
+        SetGlobalBool("ttt_thething_is_monster", thething_is_monster:GetBool())
+    end)
 
     hook.Add("Initialize", "TheThing_Initialize", function()
         WIN_THETHING = GenerateNewWinID(ROLE_THETHING)
@@ -69,6 +80,9 @@ if SERVER then
     end)
 
     hook.Add("TTTCheckForWin", "TheThing_CheckForWin", function()
+        -- Only independent Things win on their own
+        if thething_is_monster:GetBool() then return end
+
         local thething_alive = false
         local other_alive = false
         for _, v in ipairs(player.GetAll()) do
@@ -151,17 +165,24 @@ if CLIENT then
 
     hook.Add("TTTTutorialRoleText", "TheThing_TTTTutorialRoleText", function(role, titleLabel)
         if role == ROLE_THETHING then
-            local roleColor = GetRoleTeamColor(ROLE_TEAM_INDEPENDENT)
-            local html = ROLE_STRINGS[ROLE_THETHING] .. " is an <span style='color: rgb(" .. roleColor.r .. ", " .. roleColor.g .. ", " .. roleColor.b .. ")'>independent</span> role whose goal is to assimilate others by killing them."
-
             -- Use this for highlighting things like "kill"
-            roleColor = ROLE_COLORS[ROLE_TRAITOR]
+            local traitorColor = ROLE_COLORS[ROLE_TRAITOR]
 
-            html = html .. "<span style='display: block; margin-top: 10px;'>If the killed target <span style='color: rgb(" .. roleColor.r .. ", " .. roleColor.g .. ", " .. roleColor.b .. ")'>can be assimilated</span>, they will instantly respawn and take the role of " .. ROLE_STRINGS[ROLE_THETHING] .. ".</span>"
+            local roleTeam = player.GetRoleTeam(ROLE_THETHING, true)
+            local roleTeamString, roleColor = GetRoleTeamInfo(roleTeam, true)
+            local html = ROLE_STRINGS[ROLE_THETHING] .. " is a member of the <span style='color: rgb(" .. roleColor.r .. ", " .. roleColor.g .. ", " .. roleColor.b .. ")'>" .. string.lower(roleTeamString) .. " team</span> whose goal is to assimilate others by killing them."
 
-            html = html .. "<span style='display: block; margin-top: 10px;'>Assimilating another player <span style='color: rgb(" .. roleColor.r .. ", " .. roleColor.g .. ", " .. roleColor.b .. ")'>will kill " .. ROLE_STRINGS[ROLE_THETHING] .. "</span>.</span>"
+            html = html .. "<span style='display: block; margin-top: 10px;'>If the killed target <span style='color: rgb(" .. traitorColor.r .. ", " .. traitorColor.g .. ", " .. traitorColor.b .. ")'>can be assimilated</span>, they will instantly respawn and take the role of " .. ROLE_STRINGS[ROLE_THETHING] .. ".</span>"
+
+            html = html .. "<span style='display: block; margin-top: 10px;'>Assimilating another player <span style='color: rgb(" .. traitorColor.r .. ", " .. traitorColor.g .. ", " .. traitorColor.b .. ")'>will kill " .. ROLE_STRINGS[ROLE_THETHING] .. "</span>.</span>"
 
             return html
         end
     end)
 end
+
+hook.Add("TTTUpdateRoleState", "TheThing_Team_TTTUpdateRoleState", function()
+    local thething_is_monster = GetGlobalBool("ttt_thething_is_monster", false)
+    MONSTER_ROLES[ROLE_THETHING] = thething_is_monster
+    INDEPENDENT_ROLES[ROLE_THETHING] = not thething_is_monster
+end)
