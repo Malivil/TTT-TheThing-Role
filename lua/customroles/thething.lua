@@ -1,3 +1,14 @@
+local hook = hook
+local ipairs = ipairs
+local IsValid = IsValid
+local net = net
+local pairs = pairs
+local table = table
+local timer = timer
+local util = util
+
+local GetAllPlayers = player.GetAll
+
 local ROLE = {}
 
 ROLE.nameraw = "thething"
@@ -27,6 +38,10 @@ table.insert(ROLE.convars, {
     cvar = "ttt_thething_is_monster",
     type = ROLE_CONVAR_TYPE_BOOL
 })
+table.insert(ROLE.convars, {
+    cvar = "ttt_thething_swap_lovers",
+    type = ROLE_CONVAR_TYPE_BOOL
+})
 
 RegisterRole(ROLE)
 
@@ -35,7 +50,9 @@ if SERVER then
 
     util.AddNetworkString("TTT_ThingContaminated")
 
-    local thething_is_monster = CreateConVar("ttt_thething_is_monster", "0")
+    local thething_is_monster = CreateConVar("ttt_thething_is_monster", "0", FCVAR_NONE, "Whether the thing is on the monster team", 0, 1)
+    local thething_swap_lovers = CreateConVar("ttt_thething_swap_lovers", "1", FCVAR_NONE, "Whether the thing should swap lovers with their victim or not", 0, 1)
+
     hook.Add("TTTSyncGlobals", "TheThing_TTTSyncGlobals", function()
         SetGlobalBool("ttt_thething_is_monster", thething_is_monster:GetBool())
     end)
@@ -45,13 +62,67 @@ if SERVER then
         EVENT_THINGCONTAMINATED = GenerateNewEventID(ROLE_THETHING)
     end)
 
+    local function SwapCupidLovers(attacker, victim)
+        local attCupidSID = attacker:GetNWString("TTTCupidShooter", "")
+        local attCupid = player.GetBySteamID64(attCupidSID)
+        local attLoverSID = attacker:GetNWString("TTTCupidLover", "")
+        local attLover = player.GetBySteamID64(attLoverSID)
+        local vicSID = victim:SteamID64()
+
+        -- Copy attacker values to victim
+        victim:SetNWString("TTTCupidShooter", attCupidSID)
+        victim:SetNWString("TTTCupidLover", attLoverSID)
+        -- And victim values to their new lover
+        attLover:SetNWString("TTTCupidLover", vicSID)
+
+        if attCupid then
+            if attCupid:GetNWString("TTTCupidTarget1", "") == attacker:SteamID64() then
+                attCupid:SetNWString("TTTCupidTarget1", victim:SteamID64())
+            else
+                attCupid:SetNWString("TTTCupidTarget2", victim:SteamID64())
+            end
+
+            local attMessage = victim:Nick() .. " has been contaminated by " .. attacker:Nick() .. " and is now "
+            if attLoverSID == "" then
+                attMessage = attMessage .. "waiting to be paired with a lover."
+            else
+                attMessage = attMessage .. "in love with " .. attLover:Nick() .. "."
+            end
+
+            attCupid:PrintMessage(HUD_PRINTCENTER, attMessage)
+            attCupid:PrintMessage(HUD_PRINTTALK, attMessage)
+        end
+
+        local vicMessage = ""
+        if attLoverSID == "" then
+            vicMessage = attacker:Nick() .. " had been hit by cupid's arrow so you are now waiting to be paired with a lover."
+        else
+            vicMessage = attacker:Nick() .. " was in love so you are now in love with " .. attLover:Nick() .. "."
+        end
+
+        -- Wait for the previous message to clear before sending the new one
+        timer.Simple(3, function()
+            victim:PrintMessage(HUD_PRINTCENTER, vicMessage)
+            victim:PrintMessage(HUD_PRINTTALK, vicMessage)
+        end)
+    end
+
     hook.Add("PlayerDeath", "TheThing_DoPlayerDeath", function(victim, infl, attacker)
         local valid_kill = IsPlayer(attacker) and attacker ~= victim and GetRoundState() == ROUND_ACTIVE
         if not valid_kill then return end
         if not attacker:IsTheThing() then return end
         if victim:ShouldActLikeJester() then return end
 
+        attacker:SetNWBool("IsContaminating", true)
+        victim:SetNWBool("IsContaminating", true)
         timer.Simple(0.01, function()
+            local attCupidSID = attacker:GetNWString("TTTCupidLover", "")
+            local vicCupidSID = victim:GetNWString("TTTCupidLover", "")
+            -- Only swap lovers if the swap doesn't cause a lover to die elsewhere
+            if thething_swap_lovers:GetBool() and attCupidSID ~= "" and vicCupidSID == "" then
+                SwapCupidLovers(attacker, victim)
+            end
+
             local message = "You have been contaminated by " .. ROLE_STRINGS[ROLE_THETHING] .. "!"
             victim:PrintMessage(HUD_PRINTCENTER, message)
             victim:PrintMessage(HUD_PRINTTALK, message)
@@ -76,7 +147,16 @@ if SERVER then
             attacker:PrintMessage(HUD_PRINTCENTER, message)
             attacker:PrintMessage(HUD_PRINTTALK, message)
             attacker:Kill()
+
+            attacker:SetNWBool("IsContaminating", false)
+            victim:SetNWBool("IsContaminating", false)
         end)
+    end)
+
+    hook.Add("TTTCupidShouldLoverSurvive", "TheThing_TTTCupidShouldLoverSurvive", function(ply, lover)
+        if ply:GetNWBool("IsContaminating", false) or lover:GetNWBool("IsContaminating", false) then
+            return true
+        end
     end)
 
     hook.Add("TTTCheckForWin", "TheThing_CheckForWin", function()
@@ -85,7 +165,7 @@ if SERVER then
 
         local thething_alive = false
         local other_alive = false
-        for _, v in ipairs(player.GetAll()) do
+        for _, v in ipairs(GetAllPlayers()) do
             if v:Alive() and v:IsTerror() then
                 if v:IsTheThing() then
                     thething_alive = true
@@ -107,6 +187,12 @@ if SERVER then
             LANG.Msg("win_thething", { role = ROLE_STRINGS[ROLE_THETHING] })
             ServerLog("Result: " .. ROLE_STRINGS[ROLE_THETHING] .. " wins.\n")
             return true
+        end
+    end)
+
+    hook.Add("TTTPrepareRound", "TheThing_PrepareRound", function()
+        for _, v in pairs(GetAllPlayers()) do
+            v:SetNWBool("IsContaminating", false)
         end
     end)
 end
