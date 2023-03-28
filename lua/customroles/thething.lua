@@ -73,7 +73,12 @@ if SERVER then
         victim:SetNWString("TTTCupidShooter", attCupidSID)
         victim:SetNWString("TTTCupidLover", attLoverSID)
         -- And victim values to their new lover
-        attLover:SetNWString("TTTCupidLover", vicSID)
+        if attLover and IsPlayer(attLover) then
+            attLover:SetNWString("TTTCupidLover", vicSID)
+            local message = victim:Nick() .. " has been contaminated by " .. attacker:Nick() .. " and is now your lover."
+            attLover:PrintMessage(HUD_PRINTCENTER, message)
+            attLover:PrintMessage(HUD_PRINTTALK, message)
+        end
 
         if attCupid then
             if attCupid:GetNWString("TTTCupidTarget1", "") == attacker:SteamID64() then
