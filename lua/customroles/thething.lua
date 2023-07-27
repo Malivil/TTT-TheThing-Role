@@ -45,17 +45,14 @@ table.insert(ROLE.convars, {
 
 RegisterRole(ROLE)
 
+local thething_is_monster = CreateConVar("ttt_thething_is_monster", "0", FCVAR_REPLICATED, "Whether the thing is on the monster team", 0, 1)
+
 if SERVER then
     AddCSLuaFile()
 
     util.AddNetworkString("TTT_ThingContaminated")
 
-    local thething_is_monster = CreateConVar("ttt_thething_is_monster", "0", FCVAR_NONE, "Whether the thing is on the monster team", 0, 1)
     local thething_swap_lovers = CreateConVar("ttt_thething_swap_lovers", "1", FCVAR_NONE, "Whether the thing should swap lovers with their victim or not", 0, 1)
-
-    hook.Add("TTTSyncGlobals", "TheThing_TTTSyncGlobals", function()
-        SetGlobalBool("ttt_thething_is_monster", thething_is_monster:GetBool())
-    end)
 
     hook.Add("Initialize", "TheThing_Initialize", function()
         WIN_THETHING = GenerateNewWinID(ROLE_THETHING)
@@ -273,7 +270,7 @@ if CLIENT then
 end
 
 hook.Add("TTTUpdateRoleState", "TheThing_Team_TTTUpdateRoleState", function()
-    local thething_is_monster = GetGlobalBool("ttt_thething_is_monster", false)
-    MONSTER_ROLES[ROLE_THETHING] = thething_is_monster
-    INDEPENDENT_ROLES[ROLE_THETHING] = not thething_is_monster
+    local is_monster = thething_is_monster:GetBool()
+    MONSTER_ROLES[ROLE_THETHING] = is_monster
+    INDEPENDENT_ROLES[ROLE_THETHING] = not is_monster
 end)
