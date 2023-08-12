@@ -112,7 +112,7 @@ if SERVER then
     hook.Add("PlayerDeath", "TheThing_DoPlayerDeath", function(victim, infl, attacker)
         local valid_kill = IsPlayer(attacker) and attacker ~= victim and GetRoundState() == ROUND_ACTIVE
         if not valid_kill then return end
-        if not attacker:IsTheThing() then return end
+        if not attacker:IsActiveTheThing() then return end
         if victim:ShouldActLikeJester() then return end
 
         attacker:SetNWBool("IsContaminating", true)
@@ -153,6 +153,17 @@ if SERVER then
             attacker:SetNWBool("IsContaminating", false)
             victim:SetNWBool("IsContaminating", false)
         end)
+    end)
+
+    hook.Add("ScalePlayerDamage", "TheThing_ScalePlayerDamage", function(ply, hitgroup, dmginfo)
+        if not IsPlayer(ply) or not ply:IsTheThing() then return end
+
+        local att = dmginfo:GetAttacker()
+        if not IsPlayer(att) or not att:IsTheThing() then return end
+
+        -- Don't let some delayed damage caused by the previous Thing damage the new thing
+        dmginfo:ScaleDamage(0)
+        dmginfo:SetDamage(0)
     end)
 
     hook.Add("TTTCupidShouldLoverSurvive", "TheThing_TTTCupidShouldLoverSurvive", function(ply, lover)
