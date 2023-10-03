@@ -33,6 +33,10 @@ ROLE.translations = {
     }
 }
 
+ROLE.victimchangingrole = function(ply, victim)
+    return victim:GetNWBool("IsContaminating", false)
+end
+
 ROLE.convars = {}
 table.insert(ROLE.convars, {
     cvar = "ttt_thething_is_monster",
