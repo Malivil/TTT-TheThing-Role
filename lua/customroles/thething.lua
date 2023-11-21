@@ -76,9 +76,7 @@ if SERVER then
         -- And victim values to their new lover
         if attLover and IsPlayer(attLover) then
             attLover:SetNWString("TTTCupidLover", vicSID)
-            local message = victim:Nick() .. " has been contaminated by " .. attacker:Nick() .. " and is now your lover."
-            attLover:PrintMessage(HUD_PRINTCENTER, message)
-            attLover:PrintMessage(HUD_PRINTTALK, message)
+            attLover:QueueMessage(MSG_PRINTBOTH, victim:Nick() .. " has been contaminated by " .. attacker:Nick() .. " and is now your lover.")
         end
 
         if attCupid then
@@ -95,8 +93,7 @@ if SERVER then
                 attMessage = attMessage .. "in love with " .. attLover:Nick() .. "."
             end
 
-            attCupid:PrintMessage(HUD_PRINTCENTER, attMessage)
-            attCupid:PrintMessage(HUD_PRINTTALK, attMessage)
+            attCupid:QueueMessage(MSG_PRINTBOTH, attMessage)
         end
 
         local vicMessage = ""
@@ -106,11 +103,7 @@ if SERVER then
             vicMessage = attacker:Nick() .. " was in love so you are now in love with " .. attLover:Nick() .. "."
         end
 
-        -- Wait for the previous message to clear before sending the new one
-        timer.Simple(3, function()
-            victim:PrintMessage(HUD_PRINTCENTER, vicMessage)
-            victim:PrintMessage(HUD_PRINTTALK, vicMessage)
-        end)
+        victim:QueueMessage(MSG_PRINTBOTH, vicMessage)
     end
 
     hook.Add("PlayerDeath", "TheThing_DoPlayerDeath", function(victim, infl, attacker)
@@ -129,9 +122,7 @@ if SERVER then
                 SwapCupidLovers(attacker, victim)
             end
 
-            local message = "You have been contaminated by " .. ROLE_STRINGS[ROLE_THETHING] .. "!"
-            victim:PrintMessage(HUD_PRINTCENTER, message)
-            victim:PrintMessage(HUD_PRINTTALK, message)
+            victim:QueueMessage(MSG_PRINTBOTH, "You have been contaminated by " .. ROLE_STRINGS[ROLE_THETHING] .. "!")
             victim:PrintMessage(HUD_PRINTTALK, "Kill others to sacrifice yourself and consume the living.")
 
             local body = victim.server_ragdoll or victim:GetRagdollEntity()
@@ -149,9 +140,7 @@ if SERVER then
             net.WriteString(victim:Nick())
             net.Broadcast()
 
-            message = "You have successfully contaminated " .. victim:Nick() .. ", sacrificing yourself in the process"
-            attacker:PrintMessage(HUD_PRINTCENTER, message)
-            attacker:PrintMessage(HUD_PRINTTALK, message)
+            attacker:QueueMessage(MSG_PRINTBOTH, "You have successfully contaminated " .. victim:Nick() .. ", sacrificing yourself in the process")
             attacker:Kill()
 
             attacker:SetNWBool("IsContaminating", false)
