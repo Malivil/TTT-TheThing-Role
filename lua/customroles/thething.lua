@@ -1,13 +1,12 @@
 local hook = hook
-local ipairs = ipairs
 local IsValid = IsValid
 local net = net
-local pairs = pairs
+local player = player
 local table = table
 local timer = timer
 local util = util
 
-local GetAllPlayers = player.GetAll
+local PlayerIterator = player.Iterator
 
 local ROLE = {}
 
@@ -171,7 +170,7 @@ if SERVER then
 
         local thething_alive = false
         local other_alive = false
-        for _, v in ipairs(GetAllPlayers()) do
+        for _, v in PlayerIterator() do
             if v:Alive() and v:IsTerror() then
                 if v:IsTheThing() then
                     thething_alive = true
@@ -197,7 +196,7 @@ if SERVER then
     end)
 
     hook.Add("TTTPrepareRound", "TheThing_PrepareRound", function()
-        for _, v in pairs(GetAllPlayers()) do
+        for _, v in PlayerIterator() do
             v:SetNWBool("IsContaminating", false)
         end
     end)
