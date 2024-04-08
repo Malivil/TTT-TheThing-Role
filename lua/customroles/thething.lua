@@ -111,6 +111,12 @@ if SERVER then
         if not attacker:IsActiveTheThing() then return end
         if victim:ShouldActLikeJester() then return end
 
+        local becoming_zombie = victim:IsZombifying()
+        if becoming_zombie then
+            victim:SetNWBool("IsZombifying", false)
+            timer.Remove("Zombify_" .. victim:SteamID64())
+        end
+
         attacker:SetNWBool("IsContaminating", true)
         victim:SetNWBool("IsContaminating", true)
         timer.Simple(0.01, function()
@@ -122,6 +128,9 @@ if SERVER then
             end
 
             victim:QueueMessage(MSG_PRINTBOTH, "You have been contaminated by " .. ROLE_STRINGS[ROLE_THETHING] .. "!")
+            if becoming_zombie then
+                victim:QueueMessage(MSG_PRINTBOTH, ROLE_STRINGS[ROLE_THETHING] .. "'s contamination has neutralized the " .. ROLE_STRINGS[ROLE_ZOMBIE] .. " virus!")
+            end
             victim:PrintMessage(HUD_PRINTTALK, "Kill others to sacrifice yourself and consume the living.")
 
             local body = victim.server_ragdoll or victim:GetRagdollEntity()
