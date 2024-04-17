@@ -161,7 +161,7 @@ if SERVER then
         end)
     end)
 
-    hook.Add("TTTStopPlayerRespawning", "Infected_TTTStopPlayerRespawning", function(ply)
+    hook.Add("TTTStopPlayerRespawning", "TheThing_TTTStopPlayerRespawning", function(ply)
         if not IsPlayer(ply) then return end
         if ply:Alive() then return end
 
