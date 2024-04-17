@@ -111,15 +111,20 @@ if SERVER then
         if not attacker:IsActiveTheThing() then return end
         if victim:ShouldActLikeJester() then return end
 
-        local becoming_zombie = victim:IsZombifying()
-        if becoming_zombie then
+
+        local respawning = false
+        -- TODO: Switch to just calling these methods after 2.1.12 is released
+        if victim.IsRespawning then
+            respawning = victim:IsRespawning() and victim:StopRespawning()
+        elseif victim:IsZombifying() then
+            respawning = true
             victim:SetNWBool("IsZombifying", false)
             timer.Remove("Zombify_" .. victim:SteamID64())
         end
 
         attacker:SetNWBool("IsContaminating", true)
         victim:SetNWBool("IsContaminating", true)
-        timer.Simple(0.01, function()
+        timer.Create("TheThingRespawn_" .. victim:SteamID64(), function()
             local attCupidSID = attacker:GetNWString("TTTCupidLover", "")
             local vicCupidSID = victim:GetNWString("TTTCupidLover", "")
             -- Only swap lovers if the swap doesn't cause a lover to die elsewhere
@@ -128,8 +133,8 @@ if SERVER then
             end
 
             victim:QueueMessage(MSG_PRINTBOTH, "You have been contaminated by " .. ROLE_STRINGS[ROLE_THETHING] .. "!")
-            if becoming_zombie then
-                victim:QueueMessage(MSG_PRINTBOTH, ROLE_STRINGS[ROLE_THETHING] .. "'s contamination has neutralized the " .. ROLE_STRINGS[ROLE_ZOMBIE] .. " virus!")
+            if respawning then
+                victim:QueueMessage(MSG_PRINTBOTH, ROLE_STRINGS[ROLE_THETHING] .. "'s contamination has prevented your previous fate!")
             end
             victim:PrintMessage(HUD_PRINTTALK, "Kill others to sacrifice yourself and consume the living.")
 
@@ -154,6 +159,16 @@ if SERVER then
             attacker:SetNWBool("IsContaminating", false)
             victim:SetNWBool("IsContaminating", false)
         end)
+    end)
+
+    hook.Add("TTTStopPlayerRespawning", "Infected_TTTStopPlayerRespawning", function(ply)
+        if not IsPlayer(ply) then return end
+        if ply:Alive() then return end
+
+        if ply:GetNWBool("IsContaminating", false) then
+            timer.Remove("TheThingRespawn_" .. ply:SteamID64())
+            ply:SetNWBool("IsContaminating", false)
+        end
     end)
 
     hook.Add("ScalePlayerDamage", "TheThing_ScalePlayerDamage", function(ply, hitgroup, dmginfo)
@@ -207,6 +222,7 @@ if SERVER then
     hook.Add("TTTPrepareRound", "TheThing_PrepareRound", function()
         for _, v in PlayerIterator() do
             v:SetNWBool("IsContaminating", false)
+            timer.Remove("TheThingRespawn_" .. v:SteamID64())
         end
     end)
 end
@@ -289,7 +305,7 @@ end)
 
 hook.Add("TTTIsPlayerRespawning", "TheThing_TTTIsPlayerRespawning", function(ply)
     if not IsPlayer(ply) then return end
-    if not ply:Alive() or ply:IsSpec() then return end
+    if ply:Alive() then return end
 
     if ply:GetNWBool("IsContaminating", false) then
         return true
