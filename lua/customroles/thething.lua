@@ -286,3 +286,12 @@ hook.Add("TTTUpdateRoleState", "TheThing_Team_TTTUpdateRoleState", function()
     MONSTER_ROLES[ROLE_THETHING] = is_monster
     INDEPENDENT_ROLES[ROLE_THETHING] = not is_monster
 end)
+
+hook.Add("TTTIsPlayerRespawning", "TheThing_TTTIsPlayerRespawning", function(ply)
+    if not IsPlayer(ply) then return end
+    if not ply:Alive() or ply:IsSpec() then return end
+
+    if ply:GetNWBool("IsContaminating", false) then
+        return true
+    end
+end)
