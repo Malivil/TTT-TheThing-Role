@@ -20,6 +20,7 @@ ROLE.desc = [[You are {role}!
 
 Sacrifice yourself while killing your enemies
 to convert them and win through attrition.]]
+ROLE.shortdesc = "Spreads their contamination when they kill, sacrificing themselves to convert their victim. Wins by being the last killable role left."
 
 ROLE.team = ROLE_TEAM_INDEPENDENT
 
