@@ -112,7 +112,6 @@ if SERVER then
         if not attacker:IsActiveTheThing() then return end
         if victim:ShouldActLikeJester() then return end
 
-
         local respawning = false
         -- TODO: Switch to just calling these methods after 2.1.12 is released
         if victim.IsRespawning then
@@ -125,7 +124,7 @@ if SERVER then
 
         attacker:SetNWBool("IsContaminating", true)
         victim:SetNWBool("IsContaminating", true)
-        timer.Create("TheThingRespawn_" .. victim:SteamID64(), function()
+        timer.Create("TheThingRespawn_" .. victim:SteamID64(), 0.01, 1, function()
             local attCupidSID = attacker:GetNWString("TTTCupidLover", "")
             local vicCupidSID = victim:GetNWString("TTTCupidLover", "")
             -- Only swap lovers if the swap doesn't cause a lover to die elsewhere
