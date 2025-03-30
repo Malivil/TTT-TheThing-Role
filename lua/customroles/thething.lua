@@ -110,17 +110,10 @@ if SERVER then
         local valid_kill = IsPlayer(attacker) and attacker ~= victim and GetRoundState() == ROUND_ACTIVE
         if not valid_kill then return end
         if not attacker:IsActiveTheThing() then return end
+        if attacker.IsRoleAbilityDisabled and attacker:IsRoleAbilityDisabled() then return end
         if victim:ShouldActLikeJester() then return end
 
-        local respawning = false
-        -- TODO: Switch to just calling these methods after 2.1.12 is released
-        if victim.IsRespawning then
-            respawning = victim:IsRespawning() and victim:StopRespawning()
-        elseif victim:IsZombifying() then
-            respawning = true
-            victim:SetNWBool("IsZombifying", false)
-            timer.Remove("Zombify_" .. victim:SteamID64())
-        end
+        local respawning = victim:IsRespawning() and victim:StopRespawning()
 
         attacker:SetNWBool("IsContaminating", true)
         victim:SetNWBool("IsContaminating", true)
