@@ -110,7 +110,7 @@ if SERVER then
         local valid_kill = IsPlayer(attacker) and attacker ~= victim and GetRoundState() == ROUND_ACTIVE
         if not valid_kill then return end
         if not attacker:IsActiveTheThing() then return end
-        if attacker.IsRoleAbilityDisabled and attacker:IsRoleAbilityDisabled() then return end
+        if attacker:IsRoleAbilityDisabled() then return end
         if victim:ShouldActLikeJester() then return end
 
         local respawning = victim:IsRespawning() and victim:StopRespawning()
