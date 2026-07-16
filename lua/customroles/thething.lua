@@ -2,10 +2,10 @@ local hook = hook
 local IsValid = IsValid
 local net = net
 local player = player
-local table = table
 local timer = timer
 local util = util
 
+local AddHook = hook.Add
 local PlayerIterator = player.Iterator
 
 local ROLE = {}
@@ -37,17 +37,16 @@ ROLE.victimchangingrole = function(ply, victim)
     return victim:GetNWBool("IsContaminating", false)
 end
 
-ROLE.convars = {}
-table.insert(ROLE.convars, {
-    cvar = "ttt_thething_is_monster",
-    type = ROLE_CONVAR_TYPE_BOOL
-})
-table.insert(ROLE.convars, {
-    cvar = "ttt_thething_swap_lovers",
-    type = ROLE_CONVAR_TYPE_BOOL
-})
-
-RegisterRole(ROLE)
+ROLE.convars = {
+    {
+        cvar = "ttt_thething_is_monster",
+        type = ROLE_CONVAR_TYPE_BOOL
+    },
+    {
+        cvar = "ttt_thething_swap_lovers",
+        type = ROLE_CONVAR_TYPE_BOOL
+    }
+}
 
 local thething_is_monster = CreateConVar("ttt_thething_is_monster", "0", FCVAR_REPLICATED, "Whether the thing is on the monster team", 0, 1)
 
@@ -58,7 +57,7 @@ if SERVER then
 
     local thething_swap_lovers = CreateConVar("ttt_thething_swap_lovers", "1", FCVAR_NONE, "Whether the thing should swap lovers with their victim or not", 0, 1)
 
-    hook.Add("Initialize", "TheThing_Initialize", function()
+    AddHook("Initialize", "TheThing_Initialize", function()
         WIN_THETHING = GenerateNewWinID(ROLE_THETHING)
         EVENT_THINGCONTAMINATED = GenerateNewEventID(ROLE_THETHING)
     end)
@@ -106,7 +105,7 @@ if SERVER then
         victim:QueueMessage(MSG_PRINTBOTH, vicMessage)
     end
 
-    hook.Add("PlayerDeath", "TheThing_DoPlayerDeath", function(victim, infl, attacker)
+    local function TheThing_DoPlayerDeath(victim, infl, attacker)
         local valid_kill = IsPlayer(attacker) and attacker ~= victim and GetRoundState() == ROUND_ACTIVE
         if not valid_kill then return end
         if not attacker:IsActiveTheThing() then return end
@@ -143,7 +142,7 @@ if SERVER then
             SendFullStateUpdate()
 
             net.Start("TTT_ThingContaminated")
-            net.WriteString(victim:Nick())
+                net.WriteString(victim:Nick())
             net.Broadcast()
 
             attacker:QueueMessage(MSG_PRINTBOTH, "You have successfully contaminated " .. victim:Nick() .. ", sacrificing yourself in the process")
@@ -152,9 +151,9 @@ if SERVER then
             attacker:SetNWBool("IsContaminating", false)
             victim:SetNWBool("IsContaminating", false)
         end)
-    end)
+    end
 
-    hook.Add("TTTStopPlayerRespawning", "TheThing_TTTStopPlayerRespawning", function(ply)
+    local function TheThing_TTTStopPlayerRespawning(ply)
         if not IsPlayer(ply) then return end
         if ply:Alive() then return end
 
@@ -162,9 +161,9 @@ if SERVER then
             timer.Remove("TheThingRespawn_" .. ply:SteamID64())
             ply:SetNWBool("IsContaminating", false)
         end
-    end)
+    end
 
-    hook.Add("ScalePlayerDamage", "TheThing_ScalePlayerDamage", function(ply, hitgroup, dmginfo)
+    local function TheThing_ScalePlayerDamage(ply, hitgroup, dmginfo)
         if not IsPlayer(ply) or not ply:IsTheThing() then return end
 
         local att = dmginfo:GetAttacker()
@@ -173,15 +172,15 @@ if SERVER then
         -- Don't let some delayed damage caused by the previous Thing damage the new thing
         dmginfo:ScaleDamage(0)
         dmginfo:SetDamage(0)
-    end)
+    end
 
-    hook.Add("TTTCupidShouldLoverSurvive", "TheThing_TTTCupidShouldLoverSurvive", function(ply, lover)
+    local function TheThing_TTTCupidShouldLoverSurvive(ply, lover)
         if ply:GetNWBool("IsContaminating", false) or lover:GetNWBool("IsContaminating", false) then
             return true
         end
-    end)
+    end
 
-    hook.Add("TTTCheckForWin", "TheThing_CheckForWin", function()
+    local function TheThing_CheckForWin()
         -- Only independent Things win on their own
         if thething_is_monster:GetBool() then return end
 
@@ -202,30 +201,43 @@ if SERVER then
         elseif thething_alive then
             return WIN_NONE
         end
-    end)
+    end
 
-    hook.Add("TTTPrintResultMessage", "TheThing_PrintResultMessage", function(type)
+    local function TheThing_PrintResultMessage(type)
         if type == WIN_THETHING then
             LANG.Msg("win_thething", { role = ROLE_STRINGS[ROLE_THETHING] })
             ServerLog("Result: " .. ROLE_STRINGS[ROLE_THETHING] .. " wins.\n")
             return true
         end
-    end)
+    end
 
-    hook.Add("TTTPrepareRound", "TheThing_PrepareRound", function()
+    AddHook("TTTPrepareRound", "TheThing_PrepareRound", function()
         for _, v in PlayerIterator() do
             v:SetNWBool("IsContaminating", false)
             timer.Remove("TheThingRespawn_" .. v:SteamID64())
         end
     end)
+
+    ------------------
+    -- REGISTRATION --
+    ------------------
+
+    ROLE.registeredhooks = {
+        ["PlayerDeath"] = TheThing_DoPlayerDeath,
+        ["ScalePlayerDamage"] = TheThing_ScalePlayerDamage,
+        ["TTTCheckForWin"] = TheThing_CheckForWin,
+        ["TTTCupidShouldLoverSurvive"] = TheThing_TTTCupidShouldLoverSurvive,
+        ["TTTPrintResultMessage"] = TheThing_PrintResultMessage,
+        ["TTTStopPlayerRespawning"] = TheThing_TTTStopPlayerRespawning
+    }
 end
 
 if CLIENT then
-    hook.Add("TTTSyncWinIDs", "TheThing_TTTSyncWinIDs", function()
+    AddHook("TTTSyncWinIDs", "TheThing_TTTSyncWinIDs", function()
         WIN_THETHING = WINS_BY_ROLE[ROLE_THETHING]
     end)
 
-    hook.Add("TTTSyncEventIDs", "TheThing_TTTSyncEventIDs", function()
+    AddHook("TTTSyncEventIDs", "TheThing_TTTSyncEventIDs", function()
         EVENT_THINGCONTAMINATED = EVENTS_BY_ROLE[ROLE_THETHING]
         local contam_icon = Material("icon16/user_go.png")
         local Event = CLSCORE.DeclareEventDisplay
@@ -247,32 +259,32 @@ if CLIENT then
         })
     end)
 
-    hook.Add("TTTEventFinishText", "TheThing_EventFinishText", function(e)
+    local function TheThing_EventFinishText(e)
         if e.win == WIN_THETHING then
             return LANG.GetParamTranslation("ev_win_thething", { role = ROLE_STRINGS[ROLE_THETHING] })
         end
-    end)
+    end
 
-    hook.Add("TTTEventFinishIconText", "TheThing_EventFinishIconText", function(e, win_string, role_string)
+    local function TheThing_EventFinishIconText(e, win_string, role_string)
         if e.win == WIN_THETHING then
             return win_string, ROLE_STRINGS[ROLE_THETHING]
         end
-    end)
+    end
 
-    hook.Add("TTTScoringWinTitle", "TheThing_ScoringWinTitle", function(wintype, wintitles, title, secondaryWinRole)
+    local function TheThing_ScoringWinTitle(wintype, wintitles, title, secondaryWinRole)
         if wintype == WIN_THETHING then
             return { txt = "hilite_win_thething", params = { role = ROLE_STRINGS[ROLE_THETHING]:upper() }, c = ROLE_COLORS[ROLE_THETHING] }
         end
-    end)
+    end
 
     -- Show the player's starting role icon if they were converted to The Thing and group them with their original team
-    hook.Add("TTTScoringSummaryRender", "TheThing_TTTScoringSummaryRender", function(ply, roleFileName, groupingRole, roleColor, name, startingRole, finalRole)
+    local function TheThing_TTTScoringSummaryRender(ply, roleFileName, groupingRole, roleColor, name, startingRole, finalRole)
         if finalRole == ROLE_THETHING then
             return ROLE_STRINGS_SHORT[startingRole], startingRole
         end
-    end)
+    end
 
-    hook.Add("TTTTutorialRoleText", "TheThing_TTTTutorialRoleText", function(role, titleLabel)
+    AddHook("TTTTutorialRoleText", "TheThing_TTTTutorialRoleText", function(role, titleLabel)
         if role == ROLE_THETHING then
             -- Use this for highlighting things like "kill"
             local traitorColor = ROLE_COLORS[ROLE_TRAITOR]
@@ -288,19 +300,38 @@ if CLIENT then
             return html
         end
     end)
+
+    ------------------
+    -- REGISTRATION --
+    ------------------
+
+    ROLE.registeredhooks = {
+        ["TTTEventFinishIconText"] = TheThing_EventFinishIconText,
+        ["TTTEventFinishText"] = TheThing_EventFinishText,
+        ["TTTScoringSummaryRender"] = TheThing_TTTScoringSummaryRender,
+        ["TTTScoringWinTitle"] = TheThing_ScoringWinTitle
+    }
 end
 
-hook.Add("TTTUpdateRoleState", "TheThing_Team_TTTUpdateRoleState", function()
+AddHook("TTTUpdateRoleState", "TheThing_Team_TTTUpdateRoleState", function()
     local is_monster = thething_is_monster:GetBool()
     MONSTER_ROLES[ROLE_THETHING] = is_monster
     INDEPENDENT_ROLES[ROLE_THETHING] = not is_monster
 end)
 
-hook.Add("TTTIsPlayerRespawning", "TheThing_TTTIsPlayerRespawning", function(ply)
+local function TheThing_TTTIsPlayerRespawning(ply)
     if not IsPlayer(ply) then return end
     if ply:Alive() then return end
 
     if ply:GetNWBool("IsContaminating", false) then
         return true
     end
-end)
+end
+
+------------------
+-- REGISTRATION --
+------------------
+
+ROLE.registeredhooks["TTTIsPlayerRespawning"] = TheThing_TTTIsPlayerRespawning
+
+RegisterRole(ROLE)
